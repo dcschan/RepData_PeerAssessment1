@@ -7,19 +7,71 @@ output:
 
 
 ## Loading and preprocessing the data
-
-
+```{r loaddata,echo=TRUE}
+data = read.table("activity.csv", header=TRUE, sep=",")
+```
 
 ## What is mean total number of steps taken per day?
+```{r dailymeansteps,echo=TRUE}
+dailysteps = tapply(data$steps, data$date, sum, na.rm=TRUE)
+hist(dailysteps, xlab = "total number of steps", main="Total Number of Steps Taken Each Day")
 
+mean(dailysteps)
+median(dailysteps)
+```
 
 
 ## What is the average daily activity pattern?
+```{r dailyaverage,echo=TRUE}
+averagesteps = tapply(data$steps, data$interval, mean, na.rm=TRUE)
+plot(row.names(averagesteps), averagesteps, xlab = '5-minute interval', ylab = 'Average Number of Steps', type = 'l')
+
+names(which.max(averagesteps))
+```
 
 
+#### Imputing missing values
+#### Total number of missing values in the dataset is:
+```{r missingvalues,echo=TRUE}
+sum(!complete.cases(data))
+```
 
-## Imputing missing values
+#### The strategy is to replace all missing values in the dataset with the mean of the 5-min interval
 
+```{r newdataset, echo=TRUE}
+
+newdata = data
+
+newdata[is.na(newdata)] = mean(averagesteps)
+
+totalsteps = tapply(newdata$steps, newdata$date, sum)
+hist(totalsteps, xlab = "total number of steps", main="Total Number of Steps Taken Each Day")
+
+mean(totalsteps)
+median(totalsteps)
+
+```
+#### these values are higher than in the first part of the assignment. This is because inputing values in place of NA has increased the mean and median total number of daily steps.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r daycomparison, echo=TRUE}
+library(ggplot2)
+library(knitr)
+
+dayoftheweek = function(date) 
+{
+    day = weekdays(date)
+    if (day %in% c("Saturday", "Sunday"))
+        return("weekend")
+    else return("weekday")
+    
+}
+newdata$date = as.Date(newdata$date)
+newdata$day = sapply(newdata$date, FUN=dayoftheweek)
+
+
+averages = aggregate(steps ~ interval + day, data=newdata, mean)
+ggplot(averages, aes(interval, steps)) + geom_line() + facet_grid(day ~ .) + xlab("5-minute interval") + ylab("Number of steps")
+```
